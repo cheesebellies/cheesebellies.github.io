@@ -30,15 +30,8 @@ const queryParams = new URLSearchParams(url.search);
 const dataParam = queryParams.get('data');
 
 // URL decode and parse the 'data' parameter as JSON
-const decodedData = decodeURIComponent(dataParam);
-let dictionaryFromSource;
-try {
-    dictionaryFromSource = JSON.parse(decodedData);
-} catch (e) {
-    console.error('Failed to parse JSON:', e);
-}
+const todayData = String(decodeURIComponent(dataParam));
 
-const todayData = dictionaryFromSource["5/30/24"];
 const events = todayData.split("|").slice(0, -1);
 console.log(events);
 let previousEvent = "+00:00:00";
