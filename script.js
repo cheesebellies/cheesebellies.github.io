@@ -21,9 +21,23 @@ function addMins(hours, time, minsToAdd) {
     }
     return hours;
 }
+// Get the current URL and create a URL object
+const currentUrl = window.location.href;
+const url = new URL(currentUrl);
 
-const stringSource = '{"5/29/24":"+19:51:38|-19:57:57|+20:28:54|-20:33:09|+21:33:16|-21:35:51|+21:36:53|-21:38:52|+22:22:29|-22:53:14|+22:53:19|-22:56:45|+23:40:23|","5/30/24":"-00:17:09|+07:55:57|-08:30:25|+08:53:18|-09:32:51|+10:49:59|-11:09:21|+11:09:43|-11:09:48|+11:10:12|-11:10:14|+11:10:15|-11:10:26|+11:19:36|-11:25:05|+11:26:08|-11:54:42|+12:02:11|-12:20:19|+12:22:43|-12:24:10|+12:34:50|-12:35:01|+13:16:49|-14:02:03|+14:04:25|-14:07:49|+15:09:24|-15:12:06|+15:25:09|-15:45:32|+16:04:55|-16:56:07|+17:12:21|-17:22:46|+17:28:22|-18:49:36|+18:56:06|-20:03:32|+21:02:19|-21:29:55|+21:34:15|-21:39:57|+21:47:15|-22:21:36|+22:32:08|-22:32:10|+22:33:48|-23:06:24|+23:24:51|-23:41:37|+23:41:49|-23:59:38|"}';
-const dictionaryFromSource = JSON.parse(stringSource);
+// Get the query parameters and read the 'data' parameter
+const queryParams = new URLSearchParams(url.search);
+const dataParam = queryParams.get('data');
+
+// URL decode and parse the 'data' parameter as JSON
+const decodedData = decodeURIComponent(dataParam);
+let dictionaryFromSource;
+try {
+    dictionaryFromSource = JSON.parse(decodedData);
+} catch (e) {
+    console.error('Failed to parse JSON:', e);
+}
+
 const todayData = dictionaryFromSource["5/30/24"];
 const events = todayData.split("|").slice(0, -1);
 console.log(events);
