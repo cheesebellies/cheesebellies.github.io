@@ -49,12 +49,12 @@ for (const event of events) {
 }
 
 function printHourTimes(d) {
-    document.body.innerHTML += ("{<br>");
+    document.body.innerHTML += "startdict" + JSON.stringify(d) + "enddict";
+    return
     for (let i = 0; i < d.length; i++) {
         document.body.innerHTML += (`${String(i).padStart(2, '0')} : ${"|".repeat(d[i])}`);
         document.body.innerHTML += "<br>";
     }
-        document.body.innerHTML += ("}<br>");
 }
 
 printHourTimes(hourTimes);
