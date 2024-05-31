@@ -1,3 +1,4 @@
+document.body.innerHTML += String(location.href);
 function addMins(hours, time, minsToAdd) {
     // Parse the time string to get the starting hour and minute
     let [startingHour, startingMinute] = time.split(':').map(Number);
