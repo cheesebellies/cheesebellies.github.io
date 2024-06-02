@@ -34,13 +34,13 @@ const todayData = String(decodeURIComponent(dataParam));
 document.body.innerHTML += todayData;
 const events = todayData.split("|").slice(0, -1);
 console.log(events);
-let previousEvent = "+00:00:00";
+let previousEvent = " 00:00:00";
 const hourTimes = Array.from({ length: 24 }, () => 0);
 
 for (const event of events) {
     if (event.includes("-")) {
-        if (previousEvent.includes("+")) {
-            const previousEventEval = new Date(`1970-01-01T${previousEvent.replace("+", "")}`);
+        if (previousEvent.includes(" ")) {
+            const previousEventEval = new Date(`1970-01-01T${previousEvent.replace(" ", "")}`);
             const eventEval = new Date(`1970-01-01T${event.replace("-", "")}`);
             const eventMinuteDifference = Math.floor((eventEval - previousEventEval) / (1000 * 60));
             const previousEventHour = previousEventEval.getHours();
