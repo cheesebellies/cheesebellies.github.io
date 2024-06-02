@@ -31,7 +31,6 @@ const dataParam = queryParams.get('data');
 
 // URL decode and parse the 'data' parameter as JSON
 const todayData = String(decodeURIComponent(dataParam));
-document.body.innerHTML += todayData;
 const events = todayData.split("|").slice(0, -1);
 console.log(events);
 let previousEvent = " 00:00:00";
@@ -56,7 +55,7 @@ for (const event of events) {
 }
 
 function printHourTimes(d) {
-    document.body.innerHTML += "startdict" + JSON.stringify(d) + "enddict";
+    document.body.innerHTML += JSON.stringify(d);
     return;
     for (let i = 0; i < d.length; i++) {
         document.body.innerHTML += (`${String(i).padStart(2, '0')} : ${"|".repeat(d[i])}`);
