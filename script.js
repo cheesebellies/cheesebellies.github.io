@@ -21,6 +21,7 @@ function addMins(hours, time, minsToAdd) {
     }
     return hours;
 }
+
 // Get the current URL and create a URL object
 const currentUrl = window.location.href;
 const url = new URL(currentUrl);
@@ -33,10 +34,24 @@ const dataParam = queryParams.get('data');
 const todayData = String(decodeURIComponent(dataParam));
 const events = todayData.split("|").slice(0, -1);
 console.log(events);
+
 let previousEvent = " 00:00:00";
 const hourTimes = Array.from({ length: 24 }, () => 0);
+let isConnected = false;  // Track the connection state
 
-for (const event of events) {
+for (let i = 0; i < events.length; i++) {
+    const event = events[i];
+
+    // Skip duplicate connections or disconnections based on the current state
+    if (event.includes("-") && !isConnected) {
+        isConnected = true;
+    } else if (event.includes(" ") && isConnected) {
+        isConnected = false;
+    } else {
+        // If there's a duplicate event, skip it
+        continue;
+    }
+
     if (event.includes("-")) {
         if (previousEvent.includes(" ")) {
             const previousEventEval = new Date(`1970-01-01T${previousEvent.replace(" ", "")}`);
@@ -51,6 +66,7 @@ for (const event of events) {
             }
         }
     }
+
     previousEvent = event;
 }
 
