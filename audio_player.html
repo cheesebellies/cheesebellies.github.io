@@ -35,6 +35,7 @@
   <script>
     let audioFiles = [];
     let currentIndex = 0;
+    let storedTime = 0; // Variable to store the playback time
     const audioElement = document.getElementById('audioPlayer');
     const info = document.getElementById('info');
 
@@ -76,12 +77,14 @@
       const fileNames = audioFiles.map(file => file.name);
       localStorage.setItem('audioFiles', JSON.stringify(fileNames));
       localStorage.setItem('currentIndex', currentIndex);
+      localStorage.setItem('storedTime', audioElement.currentTime);
     }
 
     // Load the stored playback state from localStorage
     function loadStoredState() {
       const storedFiles = JSON.parse(localStorage.getItem('audioFiles'));
       const savedIndex = localStorage.getItem('currentIndex');
+      storedTime = parseFloat(localStorage.getItem('storedTime')) || 0; // Retrieve stored time or default to 0
       if (storedFiles && savedIndex !== null) {
         audioFiles = storedFiles.map(fileName => {
           return new File([new Blob()], fileName); // Fake File object for now, for demo purposes
@@ -100,11 +103,14 @@
         const file = audioFiles[index];
         const fileURL = URL.createObjectURL(file);
         audioElement.src = fileURL;
-        audioElement.play();
-
-        // Update UI and save the current index
-        info.textContent = `Now playing: ${file.name}`;
-        savePlaybackState();
+        
+        // Set the current playback time only AFTER the file is loaded
+        audioElement.addEventListener('loadeddata', () => {
+          audioElement.currentTime = storedTime; // Restore the saved time
+          audioElement.play();
+          info.textContent = `Now playing: ${file.name}`;
+          savePlaybackState(); // Update playback state in localStorage
+        });
       }
     }
 
