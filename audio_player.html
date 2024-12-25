@@ -27,8 +27,8 @@
 </head>
 <body>
   <h1>Audio Player</h1>
-  <p>Select audio files to play them in sequence.</p>
-  <input type="file" id="fileInput" accept="audio/*" multiple>
+  <p>Select audio files from your device to play them in sequence.</p>
+  <input type="file" id="fileInput" multiple>
   <audio id="audioPlayer" controls></audio>
   <div id="info"></div>
 
@@ -76,7 +76,7 @@
     // Attempt to resume playback
     window.onload = () => {
       const savedIndex = localStorage.getItem('currentIndex');
-      if (savedIndex) {
+      if (savedIndex && savedIndex < audioFiles.length) {
         currentIndex = parseInt(savedIndex, 10);
         info.textContent = `Resuming from file ${currentIndex + 1}/${audioFiles.length}`;
       }
