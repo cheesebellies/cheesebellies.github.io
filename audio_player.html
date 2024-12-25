@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Folder Player</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+    audio {
+      width: 100%;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Audio Folder Player</h1>
+  <p>Select a folder containing audio files to start.</p>
+  <button onclick="initialize()">Choose Folder</button>
+  <audio id="audioPlayer" controls></audio>
+  <div id="info" style="margin-top: 20px; font-size: 14px;"></div>
+
+  <script>
+    let audioFiles = [];
+    let currentIndex = 0;
+    const audioElement = document.getElementById('audioPlayer');
+    const info = document.getElementById('info');
+
+    async function pickFolder() {
+      try {
+        const dirHandle = await window.showDirectoryPicker();
+        const files = [];
+        for await (const entry of dirHandle.values()) {
+          if (entry.kind === 'file' && entry.name.match(/\.(mp3|wav|ogg)$/i)) {
+            files.push(entry);
+          }
+        }
+        return files;
+      } catch (err) {
+        info.textContent = "Folder selection canceled or not supported.";
+        console.error(err);
+        return [];
+      }
+    }
+
+    async function loadAndPlay(index) {
+      if (index >= 0 && index < audioFiles.length) {
+        const fileHandle = audioFiles[index];
+        const file = await fileHandle.getFile();
+        audioElement.src = URL.createObjectURL(file);
+        audioElement.play();
+
+        // Update UI and save the current index
+        info.textContent = `Now playing: ${fileHandle.name}`;
+        localStorage.setItem('currentIndex', index);
+        currentIndex = index;
+      }
+    }
+
+    function initializeAutoPlay() {
+      // Auto-play next file on end
+      audioElement.addEventListener('ended', () => {
+        if (currentIndex + 1 < audioFiles.length) {
+          loadAndPlay(++currentIndex);
+        }
+      });
+    }
+
+    async function initialize() {
+      audioFiles = await pickFolder();
+      if (audioFiles.length > 0) {
+        info.textContent = `${audioFiles.length} audio files loaded. Playing the first file...`;
+
+        // Attempt to resume playback
+        const savedIndex = localStorage.getItem('currentIndex');
+        if (savedIndex && savedIndex < audioFiles.length) {
+          currentIndex = parseInt(savedIndex, 10);
+          info.textContent = `Resuming from file ${currentIndex + 1}/${audioFiles.length}`;
+        }
+        initializeAutoPlay();
+        loadAndPlay(currentIndex);
+      } else {
+        info.textContent = "No audio files found in the selected folder.";
+      }
+    }
+  </script>
+</body>
+</html>
