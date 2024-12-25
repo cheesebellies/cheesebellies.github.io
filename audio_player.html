@@ -86,9 +86,8 @@
       const savedIndex = localStorage.getItem('currentIndex');
       storedTime = parseFloat(localStorage.getItem('storedTime')) || 0; // Retrieve stored time or default to 0
       if (storedFiles && savedIndex !== null) {
-        audioFiles = storedFiles.map(fileName => {
-          return new File([new Blob()], fileName); // Fake File object for now, for demo purposes
-        });
+        audioFiles = storedFiles.filter(name =>
+          Array.from(localStorage.getItem('audioFiles')).includes(name));
         currentIndex = parseInt(savedIndex, 10);
         info.textContent = `${audioFiles.length} audio files loaded.`;
         loadAndPlay(currentIndex);
