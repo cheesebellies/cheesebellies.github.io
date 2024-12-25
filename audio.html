@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Safari-Compatible Audio Player</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    button {
+      margin: 10px;
+    }
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    li {
+      margin: 5px 0;
+    }
+    audio {
+      width: 100%;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Safari Audio Player</h1>
+  <p>Choose files or a folder of audio files. Your selections will persist between sessions.</p>
+  <button id="chooseFiles">Choose Files</button>
+  <ul id="playlist"></ul>
+  <audio id="audioPlayer" controls></audio>
+
+  <script>
+    const chooseFilesButton = document.getElementById('chooseFiles');
+    const playlist = document.getElementById('playlist');
+    const audioPlayer = document.getElementById('audioPlayer');
+
+    let audioFiles = [];
+
+    // Save metadata to localStorage
+    function saveMetadata(files) {
+      const metadata = files.map(file => ({ name: file.name }));
+      localStorage.setItem('audioMetadata', JSON.stringify(metadata));
+    }
+
+    // Load metadata from localStorage
+    function loadMetadata() {
+      const metadata = localStorage.getItem('audioMetadata');
+      return metadata ? JSON.parse(metadata) : [];
+    }
+
+    // Build the audio playlist
+    function buildPlaylist(files) {
+      playlist.innerHTML = '';
+      files.forEach((file, index) => {
+        const listItem = document.createElement('li');
+        const playButton = document.createElement('button');
+        playButton.textContent = `Play ${file.name}`;
+        playButton.addEventListener('click', () => {
+          const fileURL = URL.createObjectURL(file);
+          audioPlayer.src = fileURL;
+          audioPlayer.play();
+        });
+        listItem.appendChild(playButton);
+        playlist.appendChild(listItem);
+      });
+    }
+
+    // Handle file selection
+    chooseFilesButton.addEventListener('click', async () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'audio/*';
+      input.multiple = true;
+
+      input.addEventListener('change', (event) => {
+        const files = Array.from(event.target.files);
+        audioFiles = files;
+        saveMetadata(files);
+        buildPlaylist(files);
+      });
+
+      input.click();
+    });
+
+    // Restore files on page load
+    window.addEventListener('load', () => {
+      const metadata = loadMetadata();
+      if (metadata.length > 0) {
+        alert(
+          "Your file metadata was loaded! Please reselect the files when prompted to enable playback."
+        );
+      }
+      buildPlaylist(metadata);
+    });
+  </script>
+</body>
+</html>
