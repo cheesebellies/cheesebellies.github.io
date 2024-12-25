@@ -38,6 +38,7 @@
     let storedTime = 0; // Variable to store the playback time
     const audioElement = document.getElementById('audioPlayer');
     const info = document.getElementById('info');
+    let saveInterval;
 
     // Helper function to extract numbers from filenames
     function extractNumber(filename) {
@@ -86,8 +87,9 @@
       const savedIndex = localStorage.getItem('currentIndex');
       storedTime = parseFloat(localStorage.getItem('storedTime')) || 0; // Retrieve stored time or default to 0
       if (storedFiles && savedIndex !== null) {
-        audioFiles = storedFiles.filter(name =>
-          Array.from(localStorage.getItem('audioFiles')).includes(name));
+        audioFiles = storedFiles.map(fileName => {
+          return new File([new Blob()], fileName); // Fake File object for now
+        });
         currentIndex = parseInt(savedIndex, 10);
         info.textContent = `${audioFiles.length} audio files loaded.`;
         loadAndPlay(currentIndex);
@@ -102,14 +104,35 @@
         const file = audioFiles[index];
         const fileURL = URL.createObjectURL(file);
         audioElement.src = fileURL;
-        
+
         // Set the current playback time only AFTER the file is loaded
         audioElement.addEventListener('loadeddata', () => {
-          audioElement.currentTime = storedTime; // Restore the saved time
+          audioElement.currentTime = storedTime; // Restore the saved time after file is ready
           audioElement.play();
           info.textContent = `Now playing: ${file.name}`;
-          savePlaybackState(); // Update playback state in localStorage
+          
+          // Start saving time every 5 seconds when playing
+          startSavingPlaybackState();
         });
+      }
+    }
+
+    // Start saving playback state every 5 seconds
+    function startSavingPlaybackState() {
+      // Clear any existing interval
+      if (saveInterval) clearInterval(saveInterval);
+
+      // Save playback time every 5 seconds
+      saveInterval = setInterval(() => {
+        savePlaybackState();
+      }, 5000); // 5000 milliseconds = 5 seconds
+    }
+
+    // Stop the saving interval when playback is stopped or paused
+    function stopSavingPlaybackState() {
+      if (saveInterval) {
+        clearInterval(saveInterval);
+        saveInterval = null;
       }
     }
 
@@ -119,13 +142,25 @@
         loadAndPlay(++currentIndex);
       } else {
         info.textContent = "Playback finished.";
+        stopSavingPlaybackState(); // Stop saving time after playback finishes
       }
     });
 
-    // Initialize playback from stored data
+    // Ensure the audio player always resumes at the last known position when loading the page
     window.onload = () => {
       loadStoredState();
     };
+
+    // Track and save current playback time when user pauses or stops
+    audioElement.addEventListener('pause', () => {
+      savePlaybackState();
+      stopSavingPlaybackState(); // Stop saving time when paused
+    });
+
+    audioElement.addEventListener('ended', () => {
+      savePlaybackState();
+      stopSavingPlaybackState(); // Stop saving time when playback ends
+    });
   </script>
 </body>
 </html>
