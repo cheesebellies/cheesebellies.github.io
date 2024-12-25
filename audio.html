@@ -3,15 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Safari-Compatible Audio Player</title>
+  <title>Safari Audio Player</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
       padding: 20px;
     }
-    button {
-      margin: 10px;
+    input[type="file"] {
+      display: none;
+    }
+    label {
+      display: inline-block;
+      padding: 10px 20px;
+      margin: 20px 0;
+      background: #007bff;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
     }
     ul {
       list-style-type: none;
@@ -28,13 +37,17 @@
 </head>
 <body>
   <h1>Safari Audio Player</h1>
-  <p>Choose files or a folder of audio files. Your selections will persist between sessions.</p>
-  <button id="chooseFiles">Choose Files</button>
+  <p>Choose files to play locally. Your selections will persist between sessions.</p>
+  
+  <!-- Visible label for selecting files -->
+  <label for="fileInput">Choose Files</label>
+  <input type="file" id="fileInput" accept="audio/*" multiple>
+
   <ul id="playlist"></ul>
   <audio id="audioPlayer" controls></audio>
 
   <script>
-    const chooseFilesButton = document.getElementById('chooseFiles');
+    const fileInput = document.getElementById('fileInput');
     const playlist = document.getElementById('playlist');
     const audioPlayer = document.getElementById('audioPlayer');
 
@@ -70,28 +83,19 @@
     }
 
     // Handle file selection
-    chooseFilesButton.addEventListener('click', async () => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'audio/*';
-      input.multiple = true;
-
-      input.addEventListener('change', (event) => {
-        const files = Array.from(event.target.files);
-        audioFiles = files;
-        saveMetadata(files);
-        buildPlaylist(files);
-      });
-
-      input.click();
+    fileInput.addEventListener('change', (event) => {
+      const files = Array.from(event.target.files);
+      audioFiles = files;
+      saveMetadata(files);
+      buildPlaylist(files);
     });
 
-    // Restore files on page load
+    // Restore playlist from previous session
     window.addEventListener('load', () => {
       const metadata = loadMetadata();
       if (metadata.length > 0) {
         alert(
-          "Your file metadata was loaded! Please reselect the files when prompted to enable playback."
+          "Your file metadata was loaded! Please reselect the files to enable playback."
         );
       }
       buildPlaylist(metadata);
