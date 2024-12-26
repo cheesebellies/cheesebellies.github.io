@@ -1,59 +1,184 @@
-// Load the stored playback state from localStorage
-function loadStoredState() {
-  const storedFiles = JSON.parse(localStorage.getItem('audioFiles'));
-  const savedIndex = localStorage.getItem('currentIndex');
-  storedTime = parseFloat(localStorage.getItem('storedTime')) || 0;
-
-  if (storedFiles && savedIndex !== null) {
-    // Match stored files with loaded files for syncing
-    const storedFileNames = storedFiles.join(',');
-    const loadedFileNames = audioFiles.map(file => file.name).join(',');
-
-    if (storedFileNames === loadedFileNames) {
-      currentIndex = parseInt(savedIndex, 10);
-      info.textContent = "Playback state restored.";
-      return true;
-    } else {
-      info.textContent = "Loaded files do not match previously saved session.";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Player</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
     }
-  }
-  return false;
-}
+    button, input {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 10px;
+    }
+    audio {
+      width: 100%;
+      margin-top: 20px;
+    }
+    #info {
+      margin-top: 20px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Audio Player</h1>
+  <p>Select audio files from your device to play them in sequence.</p>
+  <input type="file" id="fileInput" multiple>
+  <audio id="audioPlayer" controls></audio>
+  <div id="info"></div>
 
-// Load and play the current file
-function loadAndPlay(index, syncToStoredTime = false) {
-  if (index >= 0 && index < audioFiles.length) {
-    const file = audioFiles[index];
-    const fileURL = URL.createObjectURL(file);
-    audioElement.src = fileURL;
+  <script>
+    let audioFiles = [];
+    let currentIndex = 0;
+    let storedTime = 0; // Variable to store the playback time
+    const audioElement = document.getElementById('audioPlayer');
+    const info = document.getElementById('info');
+    let saveInterval;
 
-    audioElement.addEventListener('loadeddata', () => {
-      if (syncToStoredTime && index === currentIndex) {
-        audioElement.currentTime = storedTime; // Sync to stored time only on initial load
-      } else {
-        audioElement.currentTime = 0; // Always start new files at the beginning
-      }
-      audioElement.play();
-      info.textContent = `Now playing: ${file.name}`;
-      
-      startSavingPlaybackState();
-    }, { once: true });
-  }
-}
+    // Helper function to extract numbers from filenames
+    function extractNumber(filename) {
+      const match = filename.match(/(\d+)/); // Match the first sequence of digits in the filename
+      return match ? parseInt(match[0]) : -1; // Return the first number or -1 if no number is found
+    }
 
-// Ensure playback resumes with the correct file and time
-window.onload = () => {
-  if (audioFiles.length === 0) {
-    const storedFiles = JSON.parse(localStorage.getItem('audioFiles'));
-    if (storedFiles) {
-      storedFiles.forEach(name => {
-        // Create dummy File object placeholders (for testing purposes)
-        audioFiles.push(new File([new Blob()], name));
+    // Sort files by the number extracted from the filename
+    function sortFiles(files) {
+      return files.sort((a, b) => {
+        const numA = extractNumber(a.name);
+        const numB = extractNumber(b.name);
+        return numA - numB; // Sort in ascending order
       });
+    }
 
-      if (loadStoredState()) {
-        loadAndPlay(currentIndex, true); // Load with syncing to the saved state
+    // Load the selected files and restore the playback position
+    document.getElementById('fileInput').addEventListener('change', (event) => {
+      audioFiles = Array.from(event.target.files);
+      if (audioFiles.length > 0) {
+        // Sort the files by number in their filename
+        audioFiles = sortFiles(audioFiles);
+        info.textContent = `${audioFiles.length} audio files loaded.`;
+        currentIndex = 0;
+
+        // Save the file names to localStorage
+        savePlaybackState();
+
+        loadAndPlay(currentIndex, true); // Load with syncing to stored time
+      } else {
+        info.textContent = "No files selected.";
+      }
+    });
+
+    // Save playback state to localStorage
+    function savePlaybackState() {
+      const fileNames = audioFiles.map(file => file.name);
+      localStorage.setItem('audioFiles', JSON.stringify(fileNames));
+      localStorage.setItem('currentIndex', currentIndex);
+      localStorage.setItem('storedTime', audioElement.currentTime);
+    }
+
+    // Load the stored playback state from localStorage
+    function loadStoredState() {
+      const storedFiles = JSON.parse(localStorage.getItem('audioFiles'));
+      const savedIndex = localStorage.getItem('currentIndex');
+      storedTime = parseFloat(localStorage.getItem('storedTime')) || 0;
+
+      if (storedFiles && savedIndex !== null) {
+        // Match stored files with loaded files for syncing
+        const storedFileNames = storedFiles.join(',');
+        const loadedFileNames = audioFiles.map(file => file.name).join(',');
+
+        if (storedFileNames === loadedFileNames) {
+          currentIndex = parseInt(savedIndex, 10);
+          info.textContent = "Playback state restored.";
+          return true;
+        } else {
+          info.textContent = "Loaded files do not match previously saved session.";
+        }
+      }
+      return false;
+    }
+
+    // Load and play the current file
+    function loadAndPlay(index, syncToStoredTime = false) {
+      if (index >= 0 && index < audioFiles.length) {
+        const file = audioFiles[index];
+        const fileURL = URL.createObjectURL(file);
+        audioElement.src = fileURL;
+
+        audioElement.addEventListener('loadeddata', () => {
+          if (syncToStoredTime && index === currentIndex) {
+            audioElement.currentTime = storedTime; // Sync to stored time only on initial load
+          } else {
+            audioElement.currentTime = 0; // Always start new files at the beginning
+          }
+          audioElement.play();
+          info.textContent = `Now playing: ${file.name}`;
+          
+          startSavingPlaybackState();
+        }, { once: true });
       }
     }
-  }
-};
+
+    // Start saving playback state every 5 seconds
+    function startSavingPlaybackState() {
+      if (saveInterval) clearInterval(saveInterval);
+
+      saveInterval = setInterval(() => {
+        savePlaybackState();
+      }, 5000);
+    }
+
+    // Stop the saving interval when playback is stopped or paused
+    function stopSavingPlaybackState() {
+      if (saveInterval) {
+        clearInterval(saveInterval);
+        saveInterval = null;
+      }
+    }
+
+    // Auto-play next file
+    audioElement.addEventListener('ended', () => {
+      stopSavingPlaybackState();
+      if (currentIndex + 1 < audioFiles.length) {
+        currentIndex++;
+        savePlaybackState(); // Save index for continuity
+        loadAndPlay(currentIndex);
+      } else {
+        info.textContent = "Playback finished.";
+      }
+    });
+
+    // Resume previous session if applicable
+    window.onload = () => {
+      if (audioFiles.length === 0) {
+        const storedFiles = JSON.parse(localStorage.getItem('audioFiles'));
+        if (storedFiles) {
+          storedFiles.forEach(name => {
+            // Create dummy File object placeholders (for testing purposes)
+            audioFiles.push(new File([new Blob()], name));
+          });
+
+          if (loadStoredState()) {
+            loadAndPlay(currentIndex, true);
+          }
+        }
+      }
+    };
+
+    audioElement.addEventListener('pause', () => {
+      savePlaybackState();
+      stopSavingPlaybackState();
+    });
+
+    audioElement.addEventListener('ended', () => {
+      savePlaybackState();
+      stopSavingPlaybackState();
+    });
+  </script>
+</body>
+</html>
