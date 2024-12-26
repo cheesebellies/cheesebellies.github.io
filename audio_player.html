@@ -61,13 +61,13 @@
       if (audioFiles.length > 0) {
         // Sort the files by number in their filename
         audioFiles = sortFiles(audioFiles);
-        info.textContent = `${audioFiles.length} audio files loaded. Playing the first file...`;
+        info.textContent = `${audioFiles.length} audio files loaded.`;
         currentIndex = 0;
 
-        // Save the current file names and index to localStorage
+        // Save the file names to localStorage
         savePlaybackState();
 
-        loadAndPlay(currentIndex);
+        loadAndPlay(currentIndex, true); // Load with syncing to stored time
       } else {
         info.textContent = "No files selected.";
       }
@@ -85,47 +85,52 @@
     function loadStoredState() {
       const storedFiles = JSON.parse(localStorage.getItem('audioFiles'));
       const savedIndex = localStorage.getItem('currentIndex');
-      storedTime = parseFloat(localStorage.getItem('storedTime')) || 0; // Retrieve stored time or default to 0
+      storedTime = parseFloat(localStorage.getItem('storedTime')) || 0;
+
       if (storedFiles && savedIndex !== null) {
-        audioFiles = storedFiles.map(fileName => {
-          return new File([new Blob()], fileName); // Fake File object for now
-        });
-        currentIndex = parseInt(savedIndex, 10);
-        info.textContent = `${audioFiles.length} audio files loaded.`;
-        loadAndPlay(currentIndex);
-      } else {
-        info.textContent = "No previous session found.";
+        // Match stored files with loaded files for syncing
+        const storedFileNames = storedFiles.join(',');
+        const loadedFileNames = audioFiles.map(file => file.name).join(',');
+
+        if (storedFileNames === loadedFileNames) {
+          currentIndex = parseInt(savedIndex, 10);
+          info.textContent = "Playback state restored.";
+          return true;
+        } else {
+          info.textContent = "Loaded files do not match previously saved session.";
+        }
       }
+      return false;
     }
 
     // Load and play the current file
-    function loadAndPlay(index) {
+    function loadAndPlay(index, syncToStoredTime = false) {
       if (index >= 0 && index < audioFiles.length) {
         const file = audioFiles[index];
         const fileURL = URL.createObjectURL(file);
         audioElement.src = fileURL;
 
-        // Set the current playback time only AFTER the file is loaded
         audioElement.addEventListener('loadeddata', () => {
-          audioElement.currentTime = storedTime; // Restore the saved time after file is ready
+          if (syncToStoredTime && index === currentIndex) {
+            audioElement.currentTime = storedTime; // Sync to stored time only on initial load
+          } else {
+            audioElement.currentTime = 0; // Always start new files at the beginning
+          }
           audioElement.play();
           info.textContent = `Now playing: ${file.name}`;
           
-          // Start saving time every 5 seconds when playing
           startSavingPlaybackState();
-        });
+        }, { once: true });
       }
     }
 
     // Start saving playback state every 5 seconds
     function startSavingPlaybackState() {
-      // Clear any existing interval
       if (saveInterval) clearInterval(saveInterval);
 
-      // Save playback time every 5 seconds
       saveInterval = setInterval(() => {
         savePlaybackState();
-      }, 5000); // 5000 milliseconds = 5 seconds
+      }, 5000);
     }
 
     // Stop the saving interval when playback is stopped or paused
@@ -138,28 +143,41 @@
 
     // Auto-play next file
     audioElement.addEventListener('ended', () => {
+      stopSavingPlaybackState();
       if (currentIndex + 1 < audioFiles.length) {
-        loadAndPlay(++currentIndex);
+        currentIndex++;
+        savePlaybackState(); // Save index for continuity
+        loadAndPlay(currentIndex);
       } else {
         info.textContent = "Playback finished.";
-        stopSavingPlaybackState(); // Stop saving time after playback finishes
       }
     });
 
-    // Ensure the audio player always resumes at the last known position when loading the page
+    // Resume previous session if applicable
     window.onload = () => {
-      loadStoredState();
+      if (audioFiles.length === 0) {
+        const storedFiles = JSON.parse(localStorage.getItem('audioFiles'));
+        if (storedFiles) {
+          storedFiles.forEach(name => {
+            // Create dummy File object placeholders (for testing purposes)
+            audioFiles.push(new File([new Blob()], name));
+          });
+
+          if (loadStoredState()) {
+            loadAndPlay(currentIndex, true);
+          }
+        }
+      }
     };
 
-    // Track and save current playback time when user pauses or stops
     audioElement.addEventListener('pause', () => {
       savePlaybackState();
-      stopSavingPlaybackState(); // Stop saving time when paused
+      stopSavingPlaybackState();
     });
 
     audioElement.addEventListener('ended', () => {
       savePlaybackState();
-      stopSavingPlaybackState(); // Stop saving time when playback ends
+      stopSavingPlaybackState();
     });
   </script>
 </body>
