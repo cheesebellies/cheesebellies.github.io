@@ -3,12 +3,10 @@
 <head>
   <link rel="manifest" href="/manifest.json">
   <!-- Web App Mode -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="My Audio Player">
-
-<!-- Icons for iOS -->
-
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="My Audio Player">
+  <!-- Icons for iOS -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Audio Player</title>
@@ -47,6 +45,27 @@
     const audioElement = document.getElementById('audioPlayer');
     const info = document.getElementById('info');
     let saveInterval;
+
+    // Initialize Web Audio API
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const audioSource = audioContext.createMediaElementSource(audioElement);
+    audioSource.connect(audioContext.destination);
+
+    // Media Session API integration
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.setActionHandler('play', () => {
+        audioElement.play();
+      });
+      navigator.mediaSession.setActionHandler('pause', () => {
+        audioElement.pause();
+      });
+      navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+        audioElement.currentTime = Math.max(audioElement.currentTime - (details.seekOffset || 10), 0);
+      });
+      navigator.mediaSession.setActionHandler('seekforward', (details) => {
+        audioElement.currentTime = Math.min(audioElement.currentTime + (details.seekOffset || 10), audioElement.duration);
+      });
+    }
 
     // Helper function to extract numbers from filenames
     function extractNumber(filename) {
@@ -125,10 +144,23 @@
             audioElement.currentTime = 0; // Always start new files at the beginning
           }
           audioElement.play();
+          updateMediaMetadata(file.name); // Update metadata
           info.textContent = `Now playing: ${file.name}`;
           
           startSavingPlaybackState();
         }, { once: true });
+      }
+    }
+
+    // Update Media Session metadata
+    function updateMediaMetadata(title) {
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: title,
+          artist: "Unknown Artist",
+          album: "Unknown Album",
+          artwork: [{ src: "/path-to-icon.png", sizes: "96x96", type: "image/png" }]
+        });
       }
     }
 
