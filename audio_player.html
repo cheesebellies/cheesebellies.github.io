@@ -35,7 +35,9 @@
   <h1>Audio Player</h1>
   <p>Select audio files from your device to play them in sequence.</p>
   <input type="file" id="fileInput" multiple>
-  <audio id="audioPlayer" playsinline controls></audio>
+  <audio id="audioPlayer" playsinline></audio>
+  <button id="playBtn" style="display:none;">Play</button>
+  <button id="pauseBtn" style="display:none;">Pause</button>
   <div id="info"></div>
 
   <script>
@@ -44,12 +46,20 @@
     let storedTime = 0; // Variable to store the playback time
     const audioElement = document.getElementById('audioPlayer');
     const info = document.getElementById('info');
-    let saveInterval;
+    const playButton = document.getElementById('playBtn');
+    const pauseButton = document.getElementById('pauseBtn');
 
     // Initialize Web Audio API
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const audioSource = audioContext.createMediaElementSource(audioElement);
     audioSource.connect(audioContext.destination);
+
+    // Ensure AudioContext resumes on user interaction
+    document.body.addEventListener('click', () => {
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+    }, { once: true });
 
     // Media Session API integration
     if ('mediaSession' in navigator) {
@@ -91,44 +101,11 @@
         info.textContent = `${audioFiles.length} audio files loaded.`;
         currentIndex = 0;
 
-        // Save the file names to localStorage
-        savePlaybackState();
-
         loadAndPlay(currentIndex, true); // Load with syncing to stored time
       } else {
         info.textContent = "No files selected.";
       }
     });
-
-    // Save playback state to localStorage
-    function savePlaybackState() {
-      const fileNames = audioFiles.map(file => file.name);
-      localStorage.setItem('audioFiles', JSON.stringify(fileNames));
-      localStorage.setItem('currentIndex', currentIndex);
-      localStorage.setItem('storedTime', audioElement.currentTime);
-    }
-
-    // Load the stored playback state from localStorage
-    function loadStoredState() {
-      const storedFiles = JSON.parse(localStorage.getItem('audioFiles'));
-      const savedIndex = localStorage.getItem('currentIndex');
-      storedTime = parseFloat(localStorage.getItem('storedTime')) || 0;
-
-      if (storedFiles && savedIndex !== null) {
-        // Match stored files with loaded files for syncing
-        const storedFileNames = storedFiles.join(',');
-        const loadedFileNames = audioFiles.map(file => file.name).join(',');
-
-        if (storedFileNames === loadedFileNames) {
-          currentIndex = parseInt(savedIndex, 10);
-          info.textContent = "Playback state restored.";
-          return true;
-        } else {
-          info.textContent = "Loaded files do not match previously saved session.";
-        }
-      }
-      return false;
-    }
 
     // Load and play the current file
     function loadAndPlay(index, syncToStoredTime = false) {
@@ -146,8 +123,6 @@
           audioElement.play();
           updateMediaMetadata(file.name); // Update metadata
           info.textContent = `Now playing: ${file.name}`;
-          
-          startSavingPlaybackState();
         }, { once: true });
       }
     }
@@ -164,60 +139,26 @@
       }
     }
 
-    // Start saving playback state every 5 seconds
-    function startSavingPlaybackState() {
-      if (saveInterval) clearInterval(saveInterval);
-
-      saveInterval = setInterval(() => {
-        savePlaybackState();
-      }, 5000);
-    }
-
-    // Stop the saving interval when playback is stopped or paused
-    function stopSavingPlaybackState() {
-      if (saveInterval) {
-        clearInterval(saveInterval);
-        saveInterval = null;
+    // Playback buttons
+    playButton.addEventListener('click', () => {
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
       }
-    }
+      audioElement.play();
+    });
+
+    pauseButton.addEventListener('click', () => {
+      audioElement.pause();
+    });
 
     // Auto-play next file
     audioElement.addEventListener('ended', () => {
-      stopSavingPlaybackState();
       if (currentIndex + 1 < audioFiles.length) {
         currentIndex++;
-        savePlaybackState(); // Save index for continuity
         loadAndPlay(currentIndex);
       } else {
         info.textContent = "Playback finished.";
       }
-    });
-
-    // Resume previous session if applicable
-    window.onload = () => {
-      if (audioFiles.length === 0) {
-        const storedFiles = JSON.parse(localStorage.getItem('audioFiles'));
-        if (storedFiles) {
-          storedFiles.forEach(name => {
-            // Create dummy File object placeholders (for testing purposes)
-            audioFiles.push(new File([new Blob()], name));
-          });
-
-          if (loadStoredState()) {
-            loadAndPlay(currentIndex, true);
-          }
-        }
-      }
-    };
-
-    audioElement.addEventListener('pause', () => {
-      savePlaybackState();
-      stopSavingPlaybackState();
-    });
-
-    audioElement.addEventListener('ended', () => {
-      savePlaybackState();
-      stopSavingPlaybackState();
     });
   </script>
 </body>
