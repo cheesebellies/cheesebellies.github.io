@@ -2,6 +2,6 @@
   "name": "Rewind Audio Player",
   "short_name": "AudioPlayer",
   "display": "standalone",
-  "start_url": "/",
+  "start_url": "/audio_player",
   "background_color": "#ffffff"
 }
