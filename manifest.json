@@ -1,0 +1,7 @@
+{
+  "name": "Rewind Audio Player",
+  "short_name": "AudioPlayer",
+  "display": "standalone",
+  "start_url": "/",
+  "background_color": "#ffffff"
+}
